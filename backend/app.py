@@ -1,12 +1,21 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import sqlite3
 import os
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='.')
 CORS(app)
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'esports.db')
+
+@app.route('/')
+def index():
+    return send_from_directory('.', 'esports_api.html')
+
+@app.route('/<path:filename>')
+def serve_file(filename):
+    return send_from_directory('.', filename)
+
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
