@@ -31,7 +31,9 @@
         .api-status { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
         .api-online { background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.3); }
         .api-offline { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .api-checking { background: rgba(234, 179, 8, 0.2); color: #eab308; border: 1px solid rgba(234, 179, 8, 0.3); }
     </style>
+<base target="_blank">
 </head>
 <body class="min-h-screen">
     <header class="glass-strong sticky top-0 z-50 border-b border-slate-700/50">
@@ -45,12 +47,12 @@
                     <p class="text-xs text-slate-400">API REST Connected</p>
                 </div>
             </div>
-            <div class="flex items-center gap-3">
-                <span id="api-status" class="api-status api-offline"><i class="fas fa-circle text-xs mr-1"></i> Offline</span>
+            <div class="flex items-center gap-3 flex-wrap justify-end">
+                <span id="api-status" class="api-status api-checking"><i class="fas fa-circle text-xs mr-1"></i> Verificando...</span>
                 <div class="relative">
-                    <input type="text" id="api-url" value="http://localhost:5000" 
-                           class="px-3 py-1.5 rounded-lg bg-slate-800/50 border border-slate-700 text-white text-sm w-48 outline-none input-glow"
-                           placeholder="URL da API">
+                    <input type="text" id="api-url" value="" 
+                           class="px-3 py-1.5 rounded-lg bg-slate-800/50 border border-slate-700 text-white text-sm w-64 outline-none input-glow"
+                           placeholder="URL da API (ex: http://localhost:5000)">
                     <button onclick="testConnection()" class="absolute right-1 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white px-2">
                         <i class="fas fa-sync-alt text-xs"></i>
                     </button>
@@ -276,8 +278,27 @@
     </div>
 
 <script>
-// ===== CONFIG =====
-const getApiUrl = () => document.getElementById('api-url').value.replace(/\/$/, '');
+// ===== AUTO-DETECT API URL =====
+function detectApiUrl() {
+    // Se estiver servido pelo Flask (mesma origem), use URL relativa
+    const currentHost = window.location.host;
+    const currentProtocol = window.location.protocol;
+
+    // Se estiver em localhost:5000 ou qualquer porta 5000, use relativo
+    if (currentHost.includes(':5000') || currentHost.includes('github.dev')) {
+        return ''; // URL relativa - mesma origem
+    }
+
+    // Tentar localhost como fallback
+    return 'http://localhost:5000';
+}
+
+const getApiUrl = () => {
+    const input = document.getElementById('api-url').value.trim();
+    if (input) return input.replace(/\/$/, '');
+    return detectApiUrl();
+};
+
 let colocacoesData = [];
 let jogadoresData = [];
 let sortState = { colocacoes: { field: null, asc: true }, jogadores: { field: null, asc: true } };
@@ -286,9 +307,13 @@ let filterTimeout = null;
 
 // ===== API CALLS =====
 async function api(endpoint, options = {}) {
-    const url = getApiUrl() + endpoint;
+    const baseUrl = getApiUrl();
+    const url = baseUrl ? baseUrl + endpoint : endpoint; // se baseUrl vazio, usa relativo
     try {
-        const res = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...options.headers } });
+        const res = await fetch(url, { 
+            ...options, 
+            headers: { 'Content-Type': 'application/json', ...options.headers }
+        });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return await res.json();
     } catch (err) {
@@ -299,6 +324,7 @@ async function api(endpoint, options = {}) {
 }
 
 async function testConnection() {
+    setApiStatus('checking');
     try {
         await api('/api/stats');
         setApiStatus(true);
@@ -311,6 +337,11 @@ async function testConnection() {
 
 function setApiStatus(online) {
     const el = document.getElementById('api-status');
+    if (online === 'checking') {
+        el.className = 'api-status api-checking';
+        el.innerHTML = '<i class="fas fa-circle text-xs mr-1"></i> Verificando...';
+        return;
+    }
     if (online) {
         el.className = 'api-status api-online';
         el.innerHTML = '<i class="fas fa-circle text-xs mr-1"></i> Online';
@@ -322,6 +353,11 @@ function setApiStatus(online) {
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', () => {
+    // Auto-detectar URL e preencher campo
+    const detected = detectApiUrl();
+    if (detected) document.getElementById('api-url').value = detected;
+    else document.getElementById('api-url').placeholder = 'Auto-detectado (mesma origem)';
+
     testConnection();
 });
 
@@ -555,7 +591,9 @@ function showToast(msg, type = 'success') {
 
 async function exportSQL() {
     try {
-        const res = await fetch(getApiUrl() + '/api/export/sql');
+        const baseUrl = getApiUrl();
+        const url = baseUrl ? baseUrl + '/api/export/sql' : '/api/export/sql';
+        const res = await fetch(url);
         const text = await res.text();
         downloadFile(text, 'esports_export.sql', 'text/plain');
         showToast('SQL exportado com sucesso!');
@@ -564,7 +602,9 @@ async function exportSQL() {
 
 async function exportCSV() {
     try {
-        const res = await fetch(getApiUrl() + '/api/export/csv');
+        const baseUrl = getApiUrl();
+        const url = baseUrl ? baseUrl + '/api/export/csv' : '/api/export/csv';
+        const res = await fetch(url);
         const text = await res.text();
         downloadFile(text, 'esports_export.csv', 'text/csv');
         showToast('CSV exportado com sucesso!');
