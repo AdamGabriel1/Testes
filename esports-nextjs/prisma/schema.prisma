@@ -1,0 +1,32 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Colocacao {
+  id      Int    @id @default(autoincrement())
+  Mes     String
+  Dia     Int
+  Time    String
+  Q1_Pos  Int
+  Q2_Pos  Int
+  Q3_Pos  Int
+
+  @@map("colocacoes")
+}
+
+model Jogador {
+  id        Int    @id @default(autoincrement())
+  Mes       String
+  Dia       Int
+  Time      String
+  Jogador   String
+  Q1_Kills  Int
+  Q2_Kills  Int
+  Q3_Kills  Int
+
+  @@map("jogadores")
+}
