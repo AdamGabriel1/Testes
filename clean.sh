@@ -283,8 +283,6 @@ remove_pattern "*.tmp" "tmp"
 
 # IDEs
 remove_item ".idea" ".idea (IntelliJ)"
-remove_item ".vscode" ".vscode (VS Code)"
-remove_item ".vs" ".vs (Visual Studio)"
 remove_item "*.code-workspace" "workspace"
 remove_item ".settings" ".settings (Eclipse)"
 remove_item ".project" ".project (Eclipse)"
